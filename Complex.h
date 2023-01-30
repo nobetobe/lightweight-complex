@@ -5,7 +5,6 @@
 #include <cmath>
 
 #define COMPLEX_DEFAULT_BASE double
-#define i_unit_d i_unit<COMPLEX_DEFAULT_BASE>
 
 template <typename BASE>
 class Complex
@@ -21,7 +20,6 @@ public:
     Complex() {}
     ~Complex() {}
 
-    Complex(BASE re) : real_(re) {}
     Complex(BASE re, BASE im) : real_(re), imag_(im) {}
 
     template <typename X>
@@ -37,8 +35,59 @@ public:
         return real_*real_ + imag_*imag_;
     }
     auto arg() const {
-        return atan2(real_, imag_);
+        return std::atan2(imag_, real_);
     }
+
+    Complex operator-() const {
+        return this->operator*(-1);
+    }
+
+
+
+
+    
+    template <typename X>
+    Complex<decltype(BASE(1) + X(1))> operator+(const X &rhs) const {
+        return this->operator+(Complex<X>(rhs, 0));
+    }
+
+    template <typename X>
+    Complex<decltype(BASE(1) + X(1))> operator-(const X &rhs) const {
+        return this->operator-(Complex<X>(rhs, 0));
+    }
+
+    template <typename X>
+    Complex<decltype(BASE(1) + X(1))> operator*(const X &rhs) const {
+        return this->operator*(Complex<X>(rhs, 0));
+    }
+
+    template <typename X>
+    Complex<decltype(BASE(1) + X(1))> operator/(const X &rhs) const {
+        return this->operator/(Complex<X>(rhs, 0));
+    }
+
+
+
+    template <typename X>
+    friend Complex<decltype(BASE(1) + X(1))> operator+(const X lhs, const Complex &cm) {
+        return Complex<decltype(cm.real+lhs)>(lhs + cm.real_, cm.imag_);
+    }
+
+    template <typename X>
+    friend Complex<decltype(BASE(1) + X(1))> operator-(const X lhs, const Complex &cm) {
+        return Complex<decltype(cm.real+lhs)>(lhs - cm.real_, -cm.imag_);
+    }
+
+    template <typename X>
+    friend Complex<decltype(BASE(1) + X(1))> operator*(const X lhs, const Complex &cm) {
+        return Complex<decltype(cm.real_+lhs)>(lhs * cm.real_, lhs * cm.imag_);
+    }
+
+    template <typename X>
+    friend Complex<decltype(BASE(1) + X(1))> operator/(const X lhs, const Complex &cm) {
+        return lhs * cm.conj() / cm.norm();
+    }
+
 
 
     template <typename X>
@@ -52,46 +101,27 @@ public:
     }
 
     template <typename X>
-    auto operator+(const X &rhs) const {
-        const Complex fixed(rhs);
-        return Complex<decltype(real_+fixed.real)>(real_ + fixed.real, imag_ + fixed.imag);
+    Complex<decltype(BASE(1) + X(1))> operator+(const Complex<X> rhs) const {
+        return Complex<decltype(real_+rhs.real)>(real_ + rhs.real, imag_ + rhs.imag);
     }
 
     template <typename X>
-    auto operator-(const X &rhs) const {
-        const Complex fixed(rhs);
-        return Complex<decltype(real_+fixed.real)>(real_ - fixed.real, imag_ - fixed.imag);
+    Complex<decltype(BASE(1) + X(1))> operator-(const Complex<X> rhs) const {
+        return Complex<decltype(real_+rhs.real)>(real_ - rhs.real, imag_ - rhs.imag);
     }
 
     template <typename X>
-    auto operator*(const X &rhs) const {
-        const Complex fixed(rhs);
-        return Complex<decltype(real_+fixed.real)>(real_ * fixed.real - imag_ * fixed.imag, real_ * fixed.imag + imag_ * fixed.real);
+    Complex<decltype(BASE(1) + X(1))> operator*(const Complex<X> rhs) const {
+        return Complex<decltype(real_+rhs.real)>(real_ * rhs.real - imag_ * rhs.imag, real_ * rhs.imag + imag_ * rhs.real);
     }
 
     template <typename X>
-    auto operator/(const X &rhs) const {
-        const Complex fixed(rhs);
-        const auto norm = fixed.real * fixed.real + fixed.imag * fixed.imag;
-        return Complex<decltype(real_+fixed.real)>((real_ * fixed.real + imag_ * fixed.imag) / norm, (imag * fixed.real - real_ * fixed.imag) / norm);
+    Complex<decltype(BASE(1) + X(1))> operator/(const Complex<X> rhs) const {
+        const auto norm = rhs.real * rhs.real + rhs.imag * rhs.imag;
+        return Complex<decltype(real_+rhs.real)>((real_ * rhs.real + imag_ * rhs.imag) / norm, (imag * rhs.real - real_ * rhs.imag) / norm);
     }
 
 
-    friend auto operator+(const BASE lhs, const Complex &cm) {
-        return Complex<decltype(cm.real+lhs)>(lhs + cm.real_, cm.imag_);
-    }
-
-    friend auto operator-(const BASE lhs, const Complex &cm) {
-        return Complex<decltype(cm.real+lhs)>(lhs - cm.real_, -cm.imag_);
-    }
-
-    friend auto operator*(const BASE lhs, const Complex &cm) {
-        return Complex<decltype(cm.real_+lhs)>(lhs * cm.real_, lhs * cm.imag_);
-    }
-
-    friend auto operator/(const BASE lhs, const Complex &cm) {
-        return lhs * cm.conj() / cm.norm();
-    }
 
 
     template <typename X>
@@ -130,10 +160,60 @@ public:
 
 };
 
-template <typename BASE = COMPLEX_DEFAULT_BASE>
-const Complex<BASE> i_unit = Complex<BASE>(0, 1);
+const Complex<COMPLEX_DEFAULT_BASE> i_unit = Complex<COMPLEX_DEFAULT_BASE>(0, 1);
 
-typedef Complex<COMPLEX_DEFAULT_BASE> Complex_t;
+
+template <typename X>
+auto abs(const Complex<X> &cm) {
+    return cm.mag();
+}
+
+template <typename X>
+auto arg(const Complex<X> &cm) {
+    return cm.arg();
+}
+
+template <typename X>
+auto exp(const Complex<X> &cm) {
+    return exp(cm.real) * Complex(std::cos(cm.imag), std::sin(cm.imag));
+}
+
+template <typename X>
+auto log(const Complex<X> &cm) {
+    return Complex(std::log(cm.mag()), cm.arg());
+}
+
+template <typename X, typename Y>
+auto pow(const Complex<X> &lhs, const Complex<Y> &rhs) {
+    return exp(log(lhs) * rhs);
+}
+
+
+template <typename X>
+auto sin(const Complex<X> &cm) {
+    return Complex(std::cosh(cm.imag)*std::sin(cm.real), std::cos(cm.real)*std::sinh(cm.imag));
+}
+
+template <typename X>
+auto cos(const Complex<X> &cm) {
+    return Complex(std::cos(cm.real)*std::cosh(cm.imag), std::sin(cm.real)*std::sinh(cm.imag));
+}
+
+template <typename X>
+auto tan(const Complex<X> &cm) {
+    return Complex(std::sin(2*cm.real), std::sinh(2*cm.imag)) / (std::cos(2*cm.real) + std::cosh(2*cm.imag));
+}
+
+template <typename X>
+auto sinh(const Complex<X> &cm) {
+    return sin(cm * -i_unit) * i_unit;
+}
+
+template <typename X>
+auto cosh(const Complex<X> &cm) {
+    return cos(cm * i_unit);
+}
+
 
 
 #endif
