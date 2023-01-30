@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <cmath>
+#include <type_traits>
 
 #define COMPLEX_DEFAULT_BASE double
 
@@ -20,6 +21,7 @@ public:
     Complex() {}
     ~Complex() {}
 
+    Complex(BASE re) : real_(re) {}
     Complex(BASE re, BASE im) : real_(re), imag_(im) {}
 
     template <typename X>
@@ -47,45 +49,23 @@ public:
 
     
     template <typename X>
-    Complex<decltype(BASE(1) + X(1))> operator+(const X &rhs) const {
+    Complex<decltype(BASE(1) + X(1))> operator+(const X &rhs) {
         return this->operator+(Complex<X>(rhs, 0));
     }
 
     template <typename X>
-    Complex<decltype(BASE(1) + X(1))> operator-(const X &rhs) const {
+    Complex<decltype(BASE(1) + X(1))> operator-(const X &rhs) {
         return this->operator-(Complex<X>(rhs, 0));
     }
 
     template <typename X>
-    Complex<decltype(BASE(1) + X(1))> operator*(const X &rhs) const {
+    Complex<decltype(BASE(1) + X(1))> operator*(const X &rhs) {
         return this->operator*(Complex<X>(rhs, 0));
     }
 
     template <typename X>
-    Complex<decltype(BASE(1) + X(1))> operator/(const X &rhs) const {
+    Complex<decltype(BASE(1) + X(1))> operator/(const X &rhs) {
         return this->operator/(Complex<X>(rhs, 0));
-    }
-
-
-
-    template <typename X>
-    friend Complex<decltype(BASE(1) + X(1))> operator+(const X lhs, const Complex &cm) {
-        return Complex<decltype(cm.real+lhs)>(lhs + cm.real_, cm.imag_);
-    }
-
-    template <typename X>
-    friend Complex<decltype(BASE(1) + X(1))> operator-(const X lhs, const Complex &cm) {
-        return Complex<decltype(cm.real+lhs)>(lhs - cm.real_, -cm.imag_);
-    }
-
-    template <typename X>
-    friend Complex<decltype(BASE(1) + X(1))> operator*(const X lhs, const Complex &cm) {
-        return Complex<decltype(cm.real_+lhs)>(lhs * cm.real_, lhs * cm.imag_);
-    }
-
-    template <typename X>
-    friend Complex<decltype(BASE(1) + X(1))> operator/(const X lhs, const Complex &cm) {
-        return lhs * cm.conj() / cm.norm();
     }
 
 
@@ -160,7 +140,20 @@ public:
 
 };
 
-const Complex<COMPLEX_DEFAULT_BASE> i_unit = Complex<COMPLEX_DEFAULT_BASE>(0, 1);
+template <typename>
+struct isComplex : public std::false_type
+{};
+
+template <typename T>
+struct isComplex<Complex<T>> : public std::true_type
+{};
+
+template <typename T>
+constexpr bool isComplexFunc(T const &) {
+    return isComplex<T>::value;
+}
+
+const Complex<int> i_unit = Complex<int>(0, 1);
 
 
 template <typename X>
@@ -196,7 +189,7 @@ auto sin(const Complex<X> &cm) {
 
 template <typename X>
 auto cos(const Complex<X> &cm) {
-    return Complex(std::cos(cm.real)*std::cosh(cm.imag), std::sin(cm.real)*std::sinh(cm.imag));
+    return Complex(std::cos(cm.real)*std::cosh(cm.imag), -std::sin(cm.real)*std::sinh(cm.imag));
 }
 
 template <typename X>
@@ -214,6 +207,10 @@ auto cosh(const Complex<X> &cm) {
     return cos(cm * i_unit);
 }
 
+template <typename X>
+auto tanh(const Complex<X> &cm) {
+    return sinh(cm)/cosh(cm);
+}
 
 
 #endif
